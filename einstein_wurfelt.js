@@ -12,6 +12,7 @@
 	 * what is at each position, 0 for nothing, positive number for red piece, negative for blue piece
 	 */
 	let winner = 0;
+
 	function get_start() {
 		const pos = {rtm: true, squares: Array(25), die: 1 + Math.floor(Math.random() * 6)};
 		pos.squares.fill(0);
@@ -68,9 +69,12 @@
 			if (winner === 1) {
 				 ctx.fillStyle = 'red';
 			} else {
-				ctf.fillStyle == 'blue';
+				ctx.fillStyle == 'blue';
 			}
-			ctx.fillText('☺', 80, 20);
+			ctx.fillText(":-)",  80, 20);
+		} else {
+			ctx.fillStyle = 'black';
+			 ctx.fillText(":-|", 80, 20);
 		}
 	}
 	function owner(piece){
