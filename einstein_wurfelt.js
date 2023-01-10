@@ -8,13 +8,13 @@
 	//ctx.strokeStyle = 'red';
 	//ctx.fillRect(50, 50, 150, 100);
         //ctx.strokeRect(50, 50, 150, 100);
-	/* our position will have rtm (red to move) boolean and a "square" array indicating
+	/* our position will have ptm (player to move, red = 1, blue=-1) and a "square" array indicating
 	 * what is at each position, 0 for nothing, positive number for red piece, negative for blue piece
 	 */
 	let winner = 0;
 
 	function get_start() {
-		const pos = {rtm: true, squares: Array(25), die: 1 + Math.floor(Math.random() * 6)};
+		const pos = {ptm:1, squares: Array(25), die: 1 + Math.floor(Math.random() * 6)};
 		pos.squares.fill(0);
 		let rc = 3;
 		let x = 0;
@@ -58,7 +58,7 @@
 			    ctx.fillText(pos.squares[ii], xpos, ypos);
 			}
 		}
-		if (pos.rtm){
+		if (pos.ptm === 1){
 			ctx.fillStyle = 'red';
 			ctx.fillText(pos.die, 20, 20);
 		} else {
@@ -69,7 +69,7 @@
 			if (winner === 1) {
 				 ctx.fillStyle = 'red';
 			} else {
-				ctx.fillStyle == 'blue';
+				ctx.fillStyle = 'blue';
 			}
 			ctx.fillText(":-)",  80, 20);
 		} else {
@@ -86,7 +86,7 @@
 	function get_moves(pos){
 		let piece;
 		let diff;
-	    	if (pos.rtm){
+	    	if (pos.ptm ===1){
 		    piece = pos.die;
 		    diff = 1; // player can increase x, y or both by this amount
 	    	} else {
@@ -98,7 +98,7 @@
 			for (let ii = 0; ii < 25; ii++){
 				let there = pos.squares[ii]; //entity of piece there
 				if (owner(there) == owner(piece) && ((there + offset == piece) || (there - offset == piece))){
-					if (pos.rtm){
+					if (pos.ptm == 1){
 						if (ii % 5 < 4){
 							moves.push([ii, ii + 1]);
 						}
@@ -132,7 +132,7 @@
 		let newpos = structuredClone(pos);
 		newpos.squares[move[1]] =  pos.squares[move[0]]
 		newpos.squares[move[0]] = 0;
-		newpos.rtm = !(pos.rtm);
+		newpos.ptm = -1 * (pos.ptm);
 		newpos.die = 1 + Math.floor(Math.random() * 6);
 		return newpos;
 	}
@@ -150,6 +150,46 @@
 		if (bc === 0) return 1;
 		return 0;
 	}
+        // play any legal move with equal probability
+	function get_random_move(pos){
+		const moves = get_moves(pos);
+		return moves[Math.floor(Math.random() * moves.length)];
+	}
+        // pretend going forward after this one all moves will be played with equal probability.
+	// play the move that gives the highest probability of winning in multi carlo simulation 
+	function get_monte_carlo_move(pos){
+		const moves = get_moves(pos);
+		const tries = 50;
+		let scores = Array(moves.length);
+		scores.fill(0);
+		for (ii = 0; ii < moves.length; ii++){
+			for (iii = 0; iii < tries; iii++){ 
+			    let move = moves[ii];
+			    let npos = apply_move(pos, move);
+			    let mwinner = get_winner(npos);
+			    while (mwinner === 0){
+				    let nmove = get_random_move(npos);
+				    npos = apply_move(npos, nmove);
+				    mwinner = get_winner(npos);
+			    }
+			    if (mwinner == pos.ptm){
+				    scores[ii] += 1;
+			    }
+			}
+		}
+		let max = 0;
+		let best = 0;
+		for (ii = 0; ii < moves.length; ii++){
+			console.log(moves[ii], scores[ii]);
+			if (scores[ii] > max){
+				max = scores[ii];
+				best = ii;
+			}
+		}
+		return moves[best];
+
+	}
+
 	// sleep doesn't seem to be working
 	function sleep(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
@@ -160,8 +200,12 @@
 	function do_iter(multi) {
 		//console.log('iter ' + Math.random());
 	        if (winner != 0) return;
-		let moves = get_moves(pos);
-		let move = moves[Math.floor(Math.random() * moves.length)]
+		let move;
+		if (pos.ptm == 1){
+			move = get_random_move(pos);
+		} else {
+			move = get_monte_carlo_move(pos);
+		}
 		pos = apply_move(pos, move);
 		winner = get_winner(pos);
 		draw_pos(ctx, pos);
@@ -169,7 +213,7 @@
 			if (winner === 1){
 			    console.log("Red won");
 			} else {
-			    console.log('blue won');
+			    console.log('Blue won');
 			}
 			    
 		} else {
@@ -181,10 +225,5 @@
 	//document.addEventListener('keydown', (e) => { if (e.code == 'KeyN'){ do_iter();} 
         //} );
 	do_iter(true);
-
-
-	
-
-
 
 })();
